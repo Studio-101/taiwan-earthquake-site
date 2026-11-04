@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>台灣地震 3D 空間分佈 (1990–2025)</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- 引入 Three.js 與 OrbitControls (使用官方 CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+  <!-- 3D 畫布容器 -->
+  <div id="canvas-container"></div>
+
+  <!-- 載入中畫面 -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loading-text">載入真實地震與地理資料中...</div>
+    <div class="loading-detail" id="loading-detail">正在讀取 data/earthquakes.csv 與海岸線圖資</div>
+  </div>
+
+  <!-- 頂部標題說明面板 -->
+  <header class="header-panel">
+    <h1 class="header-title">
+      台灣地震 3D 互動圖
+      <span class="header-badge">1:1 真實比例</span>
+    </h1>
+    <p class="header-desc">
+      收錄 1990–2025 年真實震源資料，掀開地表透視板塊結構。
+    </p>
+  </header>
+
+  <!-- 右側控制面板展開按鈕（收起時顯示） -->
+  <button id="btn-expand-controls" class="floating-dock-btn dock-right" style="display: none;" title="展開操作介面">
+    <span>⚙️ 操作介面 ‹</span>
+  </button>
+
+  <!-- 右側控制面板 -->
+  <aside class="controls-panel" id="controls-panel">
+    <div class="panel-top-bar">
+      <span class="panel-top-title">操作介面</span>
+      <button id="btn-collapse-controls" class="panel-close-btn" title="收起操作介面">收起 ›</button>
+    </div>
+
+    <div>
+      <div class="section-title">視角選擇</div>
+      <div class="view-btn-group">
+        <button id="btn-view-top" class="btn active">
+          <span>🧭 俯視（北朝上）</span>
+        </button>
+        <button id="btn-view-east" class="btn">
+          <span>🌊 從東側看（觀察隱沒帶斜插）</span>
+        </button>
+        <button id="btn-view-south" class="btn">
+          <span>⛰️ 從南側看（觀察板塊碰撞帶）</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 第四階段：時間範圍與逐年累積播放 -->
+    <div>
+      <div class="section-title">時間範圍與累積播放</div>
+      <div class="slider-control-group">
+        <div class="slider-header">
+          <span>累積年份</span>
+          <span class="slider-value" id="val-year-display">1990 – 2025</span>
+        </div>
+        <input type="range" id="slider-year" min="1990" max="2025" value="2025" step="1" class="custom-slider">
+        <div class="slider-hint">顯示 1990 年起至選定年份之累積地震</div>
+        <div class="filter-action-row" style="margin-top: 6px;">
+          <button id="btn-play-years" class="btn btn-action" title="播放 1990 至 2025 年逐年累積動畫">
+            <span id="play-btn-text">▶ 播放逐年累積</span>
+          </button>
+          <button id="btn-reset-years" class="btn btn-action-sub" title="恢復顯示 1990 至 2025 全部年份">
+            <span>全部年份</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 第四階段：規模篩選 -->
+    <div>
+      <div class="section-title">芮氏規模篩選</div>
+      <div class="mag-btn-group">
+        <button class="btn mag-btn active" data-mag="3.0">全部 (≥3.0)</button>
+        <button class="btn mag-btn" data-mag="4.0">≥ 4.0</button>
+        <button class="btn mag-btn" data-mag="5.0">≥ 5.0</button>
+        <button class="btn mag-btn" data-mag="6.0">≥ 6.0</button>
+      </div>
+    </div>
+
+    <!-- 第四階段：定位準確度篩選 -->
+    <div>
+      <div class="section-title">定位準確度 (Quality)</div>
+      <div class="quality-hint">外海及少數地區因缺乏觀測站，評級常為 C 或 D，但仍為真實震源紀錄。</div>
+      <div class="quality-checkbox-group">
+        <label class="quality-label">
+          <input type="checkbox" class="quality-checkbox" value="A" checked>
+          <span class="quality-tag">等級 A</span>
+        </label>
+        <label class="quality-label">
+          <input type="checkbox" class="quality-checkbox" value="B" checked>
+          <span class="quality-tag">等級 B</span>
+        </label>
+        <label class="quality-label">
+          <input type="checkbox" class="quality-checkbox" value="C" checked>
+          <span class="quality-tag">等級 C</span>
+        </label>
+        <label class="quality-label">
+          <input type="checkbox" class="quality-checkbox" value="D" checked>
+          <span class="quality-tag">等級 D</span>
+        </label>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">地表與海底地形</div>
+      <div class="toggle-item">
+        <span>顯示 3D 地形模型 (高度放大 5 倍)</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-terrain" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="slider-control-group">
+        <div class="slider-header">
+          <span>掀開地表（垂直抬升）</span>
+          <span class="slider-value" id="val-lift-height">0 km</span>
+        </div>
+        <input type="range" id="slider-lift" min="0" max="100" value="0" step="1" class="custom-slider">
+        <div class="slider-hint">向上抬升地表，使地底與淺層震源完全分離</div>
+      </div>
+
+      <div class="slider-control-group" style="margin-top: 8px;">
+        <div class="slider-header">
+          <span>地表不透明度（透視調節）</span>
+          <span class="slider-value" id="val-terrain-opacity">100%</span>
+        </div>
+        <input type="range" id="slider-opacity" min="0" max="100" value="100" step="5" class="custom-slider">
+        <div class="slider-hint">調低透明度可穿透地表外殼，從任意視角直視震源</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">資料範圍與圖層</div>
+      <div class="toggle-item">
+        <span>只顯示共同範圍 (119–123°E, 21–26°N)</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-common-range" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="toggle-item">
+        <span>顯示台灣海岸線 (深度 0 km)</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-coastline" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="toggle-item">
+        <span>顯示涵蓋範圍框線與深度網格</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-box" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 左側圖例說明展開按鈕（收起時顯示） -->
+  <button id="btn-expand-left" class="floating-dock-btn dock-left" style="display: none;" title="展開圖例與說明">
+    <span>📊 圖例與說明 ›</span>
+  </button>
+
+  <!-- 地震單點點擊詳細資訊浮動卡（第四階段：點擊單一地震顯示原始資料） -->
+  <div id="earthquake-detail-card" class="eq-detail-card" style="display: none;">
+    <div class="eq-detail-header">
+      <div class="eq-detail-title">
+        <span class="eq-pulse-icon"></span>
+        <span>地震觀測詳細資料</span>
+      </div>
+      <button id="btn-close-detail" class="eq-detail-close" title="關閉">✕</button>
+    </div>
+    <div class="eq-detail-body">
+      <div class="eq-detail-row highlight-row">
+        <span class="eq-label">芮氏規模</span>
+        <span class="eq-value mag-highlight" id="detail-mag">--</span>
+      </div>
+      <div class="eq-detail-row">
+        <span class="eq-label">發震時間 (UTC+8)</span>
+        <span class="eq-value" id="detail-time">--</span>
+      </div>
+      <div class="eq-detail-row">
+        <span class="eq-label">震源深度</span>
+        <span class="eq-value" id="detail-depth">--</span>
+      </div>
+      <div class="eq-detail-row">
+        <span class="eq-label">震央經度</span>
+        <span class="eq-value" id="detail-lon">--</span>
+      </div>
+      <div class="eq-detail-row">
+        <span class="eq-label">震央緯度</span>
+        <span class="eq-value" id="detail-lat">--</span>
+      </div>
+      <div class="eq-detail-row">
+        <span class="eq-label">定位準確度</span>
+        <span class="eq-value" id="detail-quality">--</span>
+      </div>
+    </div>
+    <div class="eq-detail-hint">
+      ※ 外海及少數地區因缺乏觀測站，評級常為 C 或 D，但仍為真實震源紀錄。
+    </div>
+    <div class="eq-detail-footer">
+      <span>資料來源：中央氣象署地震目錄原始紀錄</span>
+    </div>
+  </div>
+
+  <!-- 左側面板容器（白話說明卡、圖例與資料說明卡） -->
+  <div class="left-panels-container" id="left-panels-container">
+    <div class="panel-top-bar" style="margin-bottom: 2px;">
+      <span class="panel-top-title">圖例與地科解說</span>
+      <button id="btn-collapse-left" class="panel-close-btn" title="收起圖例與說明">‹ 收起</button>
+    </div>
+
+    <!-- 白話說明卡片（第四階段：版面排版，內容與出處由使用者提供，未提供前以（待填入）佔位） -->
+    <section class="explain-card" id="explain-card">
+      <div class="explain-header">
+        <div class="explain-tag">地科白話解說</div>
+        <div class="explain-nav">
+          <button id="btn-explain-prev" class="explain-nav-btn" title="上一張">‹</button>
+          <span id="explain-page" class="explain-page-num">1 / 3</span>
+          <button id="btn-explain-next" class="explain-nav-btn" title="下一張">›</button>
+        </div>
+      </div>
+      <h3 class="explain-title" id="explain-title">宜蘭外海：鑽進地底的板塊溜滑梯</h3>
+      <p class="explain-content" id="explain-content">
+        仔細看台灣東北部外海（點右側「從東側看」），地震點從海面附近的紅色，越往北越深（黃色、綠色），最後一路插到地底 200～300 公里的深藍色！這是因為「菲律賓海板塊」在這裡像溜滑梯一樣，斜斜地插進歐亞板塊肚子底下，摩擦破裂排出了一道壯觀的斜坡。
+      </p>
+      <div class="explain-source" id="explain-source">
+        資料出處：交通部中央氣象署地震測報中心《台灣之板塊構造與地震活動》
+      </div>
+    </section>
+
+    <!-- 圖例面板 -->
+    <section class="legend-panel">
+      <div class="legend-group">
+        <div class="legend-header">
+          <span>震源深度分級</span>
+          <span style="font-size: 12px; color: var(--text-muted);">單位：公里 (km)</span>
+        </div>
+        <div class="legend-items">
+          <div class="legend-item">
+            <span class="color-dot" style="background: #ff1744; box-shadow: 0 0 6px #ff1744;"></span>
+            <span>0 – 30 km (極淺層)</span>
+          </div>
+          <div class="legend-item">
+            <span class="color-dot" style="background: #ffea00; box-shadow: 0 0 6px #ffea00;"></span>
+            <span>30 – 70 km (淺層)</span>
+          </div>
+          <div class="legend-item">
+            <span class="color-dot" style="background: #00e676; box-shadow: 0 0 6px #00e676;"></span>
+            <span>70 – 150 km (中深層)</span>
+          </div>
+          <div class="legend-item">
+            <span class="color-dot" style="background: #00b0ff; box-shadow: 0 0 6px #00b0ff;"></span>
+            <span>150 – 300+ km (深層)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="legend-group" style="margin-top: 14px;">
+        <div class="legend-header">
+          <span>芮氏規模分級</span>
+          <span style="font-size: 12px; color: var(--text-muted);">圓點直徑</span>
+        </div>
+        <div class="legend-items">
+          <div class="legend-item">
+            <div class="size-preview"><span class="size-circle" style="width: 4px; height: 4px;"></span></div>
+            <span>規模 3.0 – 3.9</span>
+          </div>
+          <div class="legend-item">
+            <div class="size-preview"><span class="size-circle" style="width: 7px; height: 7px;"></span></div>
+            <span>規模 4.0 – 4.9</span>
+          </div>
+          <div class="legend-item">
+            <div class="size-preview"><span class="size-circle" style="width: 10px; height: 10px;"></span></div>
+            <span>規模 5.0 – 5.9</span>
+          </div>
+          <div class="legend-item">
+            <div class="size-preview"><span class="size-circle" style="width: 14px; height: 14px;"></span></div>
+            <span>規模 6.0 以上</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 資料說明卡 (已自右下角移至左側) -->
+    <footer class="info-panel">
+      <div class="info-row">
+        <span class="info-label">目前顯示點數：</span>
+        <span class="info-value" id="stat-displayed-points">載入中...</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">資料庫總筆數：</span>
+        <span class="info-value" id="stat-total-points">73,729 筆</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">時間範圍：</span>
+        <span class="info-value">1990-01-01 ～ 2025-12-31</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">垂直/水平比例：</span>
+        <span class="info-value" style="color: #38bdf8;">地表高度放大 5 倍，地震深度為真實比例</span>
+      </div>
+      <div class="info-divider"></div>
+      <div class="source-text">
+        地震資料：交通部中央氣象署地震目錄（1990–2025），政府資料開放授權<br>
+        地形資料：NOAA ETOPO 2022 / GEBCO (15 弧秒網格)，公有領域 (Public Domain)<br>
+        海岸線圖資：g0v 社群台灣邊界圖資，政府資料開放授權
+      </div>
+    </footer>
+  </div>
+
+  <!-- 應用程式主邏輯 -->
+  <script src="app.js"></script>
+</body>
+</html>

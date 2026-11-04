@@ -1,0 +1,1049 @@
+/* ============================================================
+   台灣地震 3D 空間分佈視覺化 - 樣式表
+   設計風格：深色高對比、字體清晰易讀（專為 45 歲以上讀者優化）
+============================================================ */
+
+:root {
+  --bg-color: #0b0f17;
+  --panel-bg: rgba(16, 23, 38, 0.88);
+  --panel-border: rgba(99, 133, 179, 0.35);
+  --text-main: #f0f4f8;
+  --text-muted: #9bb0c9;
+  --accent-color: #38bdf8;
+  --accent-hover: #0ea5e9;
+  --btn-bg: #1e293b;
+  --btn-border: #475569;
+  --btn-active: #0284c7;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+body, html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-color);
+  font-family: var(--font-family);
+  color: var(--text-main);
+  user-select: none;
+  overscroll-behavior: none;
+}
+
+/* 手指操作只控制 3D 視角，不觸發瀏覽器捲動或縮放 */
+#canvas-container canvas {
+  touch-action: none;
+}
+
+#canvas-container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+/* 頂部標題浮動面板（寬度與左側說明卡完全對齊） */
+.header-panel {
+  position: absolute;
+  top: 18px;
+  left: 20px;
+  z-index: 10;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(12px);
+  padding: 14px 18px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  width: 370px;
+  pointer-events: auto;
+}
+
+.header-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.header-badge {
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(56, 189, 248, 0.2);
+  color: var(--accent-color);
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.header-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  line-height: 1.45;
+}
+
+/* 右側控制面板 */
+.controls-panel {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  z-index: 10;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(12px);
+  padding: 18px 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  width: 320px;
+  max-height: calc(100vh - 36px);
+  overflow-y: auto;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+}
+
+.controls-panel.collapsed {
+  transform: translateX(calc(100% + 40px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  border-left: 4px solid var(--accent-color);
+  padding-left: 8px;
+  margin-bottom: 8px;
+}
+
+.view-btn-group {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.btn {
+  background: var(--btn-bg);
+  color: var(--text-main);
+  border: 1px solid var(--btn-border);
+  padding: 10px 14px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+}
+
+.btn:hover {
+  background: #334155;
+  border-color: var(--accent-color);
+  color: #ffffff;
+}
+
+.btn.active {
+  background: var(--btn-active);
+  border-color: #38bdf8;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+}
+
+.toggle-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 15px;
+  color: var(--text-main);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.toggle-item:last-child {
+  border-bottom: none;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #475569;
+  transition: .3s;
+  border-radius: 24px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--accent-color);
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+/* 地形掀開滑桿與微調控制 */
+.slider-control-group {
+  margin-top: 10px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.slider-value {
+  color: #38bdf8;
+  font-weight: 700;
+  font-size: 15px;
+  background: rgba(56, 189, 248, 0.15);
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.custom-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #334155;
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.custom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #38bdf8;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
+  border: 2px solid #ffffff;
+  transition: transform 0.15s ease;
+}
+
+.custom-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  background: #0ea5e9;
+}
+
+.slider-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.lift-quick-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn-sm {
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* 左側面板容器（收納圖例與資料說明卡） */
+.left-panels-container {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 370px;
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  pointer-events: none;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+}
+
+.left-panels-container.collapsed {
+  transform: translateX(calc(-100% - 40px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.left-panels-container > * {
+  pointer-events: auto;
+}
+
+/* 面板頂部導覽列與收合/展開按鈕 */
+.panel-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 2px;
+}
+
+.panel-top-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.panel-close-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.panel-close-btn:hover {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: var(--accent-color);
+  color: #ffffff;
+}
+
+/* 浮動展開按鈕（面板收合時呈現） */
+.floating-dock-btn {
+  position: absolute;
+  z-index: 20;
+  background: var(--panel-bg);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #ffffff;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  transition: all 0.2s ease;
+}
+
+.floating-dock-btn:hover {
+  background: #1e293b;
+  border-color: var(--accent-color);
+  color: #38bdf8;
+  transform: scale(1.05);
+}
+
+.floating-dock-btn.dock-right {
+  top: 18px;
+  right: 20px;
+}
+
+.floating-dock-btn.dock-left {
+  bottom: 20px;
+  left: 20px;
+}
+
+/* 左側圖例面板 */
+.legend-panel {
+  position: relative;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(12px);
+  padding: 14px 18px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  width: 100%;
+}
+
+.legend-group {
+  margin-bottom: 14px;
+}
+
+.legend-group:last-child {
+  margin-bottom: 0;
+}
+
+.legend-header {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.legend-items {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 14px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-main);
+}
+
+.color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.size-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.size-circle {
+  background: #ffffff;
+  border-radius: 50%;
+}
+
+/* 左側資訊與來源說明卡 */
+.info-panel {
+  position: relative;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(12px);
+  padding: 14px 18px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+
+.info-label {
+  color: var(--text-muted);
+}
+
+.info-value {
+  color: #ffffff;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.info-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 10px 0;
+}
+
+.source-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* 滾動條質感美化 */
+.controls-panel::-webkit-scrollbar,
+.left-panels-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.controls-panel::-webkit-scrollbar-track,
+.left-panels-container::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 3px;
+}
+
+.controls-panel::-webkit-scrollbar-thumb,
+.left-panels-container::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.35);
+  border-radius: 3px;
+}
+
+.controls-panel::-webkit-scrollbar-thumb:hover,
+.left-panels-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.7);
+}
+
+/* 載入中覆蓋層 */
+#loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #0b0f17;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  transition: opacity 0.5s ease;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(56, 189, 248, 0.2);
+  border-top-color: var(--accent-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.loading-detail {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   第四階段：互動控制項樣式（時間、規模、Quality、地震資訊卡、白話卡）
+   ============================================================ */
+
+/* 年份播放控制列 */
+.filter-action-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 8px;
+}
+
+.btn-action {
+  background: rgba(56, 189, 248, 0.18);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-action:hover {
+  background: var(--accent-color);
+  color: #0b0f17;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+}
+
+.btn-action.playing {
+  background: #f59e0b;
+  border-color: #fbbf24;
+  color: #0b0f17;
+}
+
+.btn-action-sub {
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-action-sub:hover {
+  background: #334155;
+  color: #ffffff;
+  border-color: var(--text-muted);
+}
+
+/* 規模按鈕群組 */
+.mag-btn-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.mag-btn {
+  padding: 8px 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Quality 篩選群組 */
+.quality-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.quality-checkbox-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.quality-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.quality-label:hover {
+  border-color: var(--accent-color);
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.quality-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent-color);
+  cursor: pointer;
+}
+
+.quality-tag {
+  user-select: none;
+}
+
+/* 地震單點詳細資訊卡 (Floating Detail Card) */
+.eq-detail-card {
+  position: absolute;
+  top: 18px;
+  left: 410px;
+  z-index: 50;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1.5px solid var(--accent-color);
+  backdrop-filter: blur(16px);
+  padding: 16px 20px;
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7), 0 0 16px rgba(56, 189, 248, 0.25);
+  width: 330px;
+  pointer-events: auto;
+  animation: fadeInPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInPop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.eq-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 10px;
+}
+
+.eq-detail-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.eq-pulse-icon {
+  width: 10px;
+  height: 10px;
+  background: #ff1744;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #ff1744;
+  animation: pulseDot 1.4s infinite;
+}
+
+@keyframes pulseDot {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+
+.eq-detail-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.eq-detail-close:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.eq-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.eq-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.eq-detail-row.highlight-row {
+  padding: 4px 8px;
+  background: rgba(56, 189, 248, 0.12);
+  border-radius: 6px;
+  margin-bottom: 2px;
+}
+
+.eq-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.eq-value {
+  color: #ffffff;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.mag-highlight {
+  font-size: 18px;
+  color: #ffea00;
+  letter-spacing: 0.5px;
+}
+
+.eq-detail-hint {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+
+.eq-detail-footer {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* 白話說明卡片 (Explain Card) */
+.explain-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(12px);
+  padding: 14px 18px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  width: 100%;
+}
+
+.explain-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.explain-tag {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-color);
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  padding: 2px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
+.explain-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.explain-nav-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.explain-nav-btn:hover {
+  background: rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
+  border-color: var(--accent-color);
+}
+
+.explain-page-num {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 0 2px;
+}
+
+.explain-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.explain-content {
+  font-size: 14px;
+  color: var(--text-main);
+  line-height: 1.55;
+  margin-bottom: 8px;
+}
+
+.explain-source {
+  font-size: 12px;
+  color: var(--text-muted);
+  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+  padding-top: 6px;
+  line-height: 1.4;
+}
+
+/* ============================================================
+   手機版面
+   ============================================================ */
+
+/* 手機共用：標題縮成一行、展開鈕移到下方兩角、資訊卡不超出螢幕 */
+@media (max-width: 768px), (max-height: 500px) {
+  .header-panel {
+    top: 8px;
+    left: 8px;
+    width: auto;
+    max-width: calc(100vw - 16px);
+    padding: 8px 12px;
+  }
+
+  .header-title {
+    font-size: 16px;
+  }
+
+  .header-desc {
+    display: none;
+  }
+
+  .floating-dock-btn {
+    padding: 12px 14px;
+  }
+
+  .floating-dock-btn.dock-right {
+    top: auto;
+    bottom: 12px;
+    right: 8px;
+  }
+
+  .floating-dock-btn.dock-left {
+    bottom: 12px;
+    left: 8px;
+  }
+
+  .eq-detail-card {
+    top: 8px;
+    left: 8px;
+    width: min(330px, calc(100vw - 16px));
+    padding: 12px 14px;
+  }
+
+  .eq-detail-close,
+  .panel-close-btn {
+    min-width: 44px;
+    min-height: 40px;
+  }
+
+  .explain-nav-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .custom-slider {
+    height: 10px;
+    border-radius: 5px;
+  }
+
+  .custom-slider::-webkit-slider-thumb {
+    width: 28px;
+    height: 28px;
+  }
+
+  .custom-slider::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* 直式手機：面板從底部升起，上方仍看得到 3D 畫面 */
+@media (max-width: 768px) and (min-height: 501px) {
+  .controls-panel,
+  .left-panels-container {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 55vh;
+    max-height: 55dvh;
+    padding: 12px 14px;
+    border-radius: 14px 14px 0 0;
+    z-index: 30;
+  }
+
+  .left-panels-container {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    backdrop-filter: blur(12px);
+    pointer-events: auto;
+  }
+
+  .left-panels-container .explain-card,
+  .left-panels-container .legend-panel,
+  .left-panels-container .info-panel {
+    flex-shrink: 0;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+
+  .controls-panel.collapsed,
+  .left-panels-container.collapsed {
+    transform: translateY(calc(100% + 20px));
+  }
+}
+
+/* 橫式手機：面板貼左右兩側，高度用滿螢幕 */
+@media (max-height: 500px) {
+  .controls-panel,
+  .left-panels-container {
+    top: 8px;
+    bottom: 8px;
+    width: 300px;
+    max-height: none;
+    padding: 12px 14px;
+    z-index: 30;
+  }
+
+  .controls-panel {
+    right: 8px;
+  }
+
+  .left-panels-container {
+    left: 8px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    pointer-events: auto;
+  }
+
+  .left-panels-container .explain-card,
+  .left-panels-container .legend-panel,
+  .left-panels-container .info-panel {
+    flex-shrink: 0;
+  }
+}
+
